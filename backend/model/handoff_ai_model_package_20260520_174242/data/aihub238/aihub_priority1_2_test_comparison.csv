@@ -1,0 +1,14 @@
+﻿experiment,task,model,accuracy,macro_f1,top2,top3,note
+current_vibration_late_fusion_paired_holdout,binary_normal_vs_fault,current_binary_rf,0.8421828908554573,0.7802195804704257,1.0,1.0,same asset+label pseudo-paired group holdout
+current_tabular_10k_groupcv,binary_normal_vs_fault,random_forest,0.7999855946448514,0.7205880977435597,1.0,1.0,5-fold group-CV mean
+vibration_tabular_10k_groupcv,binary_normal_vs_fault,random_forest,0.7500785001017558,0.700695349059331,1.0,1.0,5-fold group-CV mean
+vibration_tabular_10k_groupcv,fault_type_only,random_forest,0.4105779111539245,0.3183915846885644,0.6948985209109406,0.8805887094281312,5-fold group-CV mean
+current_tabular_10k_groupcv,fault_type_only,logistic_regression,0.184890049969698,0.1988160456974622,0.5062595791928238,0.854432484591117,5-fold group-CV mean
+current_vibration_late_fusion_paired_holdout,multiclass_fault_type,vibration_multiclass_rf,0.616519174041298,0.5989992318323043,0.782448377581121,0.8547197640117994,same asset+label pseudo-paired group holdout
+current_vibration_late_fusion_paired_holdout,multiclass_fault_type,late_fusion_hard_gate,0.5014749262536873,0.4241671764484801,0.6799410029498525,0.7846607669616519,same asset+label pseudo-paired group holdout
+current_vibration_late_fusion_paired_holdout,multiclass_fault_type,late_fusion_soft_gate,0.5022123893805309,0.421942170392795,0.549410029498525,0.7072271386430679,same asset+label pseudo-paired group holdout
+vibration_tabular_10k_groupcv,multiclass_fault_type,logistic_regression,0.4988178345770871,0.4195177424685058,0.6850374712275997,0.8853261660966796,5-fold group-CV mean
+current_vibration_late_fusion_paired_holdout,multiclass_fault_type,vibration_multiclass_logreg,0.4210914454277286,0.3510021920511009,0.7020648967551623,0.7072271386430679,same asset+label pseudo-paired group holdout
+vibration_raw_tcn_10k_groupcv,multiclass_fault_type,tcn,0.34698263910870225,0.2338692269501748,0.5188859618166844,0.6569812409672301,"5-fold group-CV mean, raw waveform"
+current_tabular_10k_groupcv,multiclass_fault_type,random_forest,0.3054628242161802,0.1992578944473809,0.3566263885311097,0.4896874630587843,5-fold group-CV mean
+current_vibration_late_fusion_paired_holdout,multiclass_fault_type,current_multiclass_rf,0.1836283185840708,0.099203187250996,0.2603244837758112,0.5545722713864307,same asset+label pseudo-paired group holdout

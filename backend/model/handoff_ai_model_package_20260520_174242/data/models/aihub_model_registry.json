@@ -1,0 +1,87 @@
+{
+  "registry_version": "aihub-238-current-vibration-v1",
+  "created_for": "factory_pipeline predictive maintenance MVP",
+  "dataset": {
+    "name": "AI-Hub 238 Mechanical Facility Failure Prediction Sensor",
+    "current_source": "data/aihub238/downloads/.../2._Validation/current.zip",
+    "vibration_source": "data/aihub238/downloads/.../2._Validation/vibration.zip",
+    "labels": {
+      "00": "normal",
+      "01": "bearing_fault",
+      "02": "rotor_imbalance",
+      "03": "shaft_misalignment",
+      "04": "belt_looseness"
+    }
+  },
+  "recommended_mvp_roles": {
+    "fault_detection_binary": {
+      "signal": "current",
+      "task": "binary_normal_vs_fault",
+      "model": "random_forest",
+      "artifact": "data/models/aihub_generalization_10k/binary_normal_vs_fault_asset_baseline_random_forest.joblib",
+      "group_cv": {
+        "accuracy_mean": 0.7999855946448514,
+        "macro_f1_mean": 0.7205880977435597,
+        "macro_f1_std": 0.1342688157787593
+      },
+      "product_use": "Primary normal/fault alert signal for unseen assets."
+    },
+    "fault_type_top3_candidates": {
+      "signal": "vibration",
+      "task": "multiclass_fault_type",
+      "model": "logistic_regression",
+      "artifact": "data/models/aihub_vibration_generalization_10k/multiclass_fault_type_asset_baseline_logistic_regression.joblib",
+      "group_cv": {
+        "accuracy_mean": 0.4988178345770871,
+        "macro_f1_mean": 0.41951774246850587,
+        "macro_f1_std": 0.15023924416106596,
+        "top2_accuracy_mean": 0.6850374712275997,
+        "top3_accuracy_mean": 0.8853261660966796
+      },
+      "product_use": "Show ranked cause candidates, not a hard top-1 diagnosis."
+    },
+    "fault_only_type_top3_candidates": {
+      "signal": "vibration",
+      "task": "fault_type_only",
+      "model": "random_forest",
+      "artifact": "data/models/aihub_vibration_generalization_10k/fault_type_only_asset_baseline_random_forest.joblib",
+      "group_cv": {
+        "accuracy_mean": 0.41057791115392456,
+        "macro_f1_mean": 0.31839158468856443,
+        "macro_f1_std": 0.1782879027207705,
+        "top2_accuracy_mean": 0.6948985209109406,
+        "top3_accuracy_mean": 0.8805887094281312
+      },
+      "product_use": "Secondary ranked cause candidates after binary fault detection."
+    },
+    "decision_policy_late_fusion": {
+      "signal": "current + vibration",
+      "task": "MVP decision policy",
+      "artifact": "data/aihub238/aihub_current_vibration_late_fusion_report.md",
+      "paired_holdout_reference": {
+        "current_binary_rf_macro_f1": 0.780220,
+        "vibration_multiclass_rf_macro_f1": 0.598999,
+        "late_fusion_hard_gate_macro_f1": 0.424167,
+        "late_fusion_soft_gate_macro_f1": 0.421942
+      },
+      "product_use": "Use current for alert gating and vibration for ranked cause candidates. Do not use hard/soft fusion as the best 5-class classifier yet."
+    },
+    "raw_tcn_research_candidate": {
+      "signal": "vibration",
+      "task": "multiclass_fault_type",
+      "artifact": "data/aihub238/aihub_vibration_waveform_tcn_10k_cv_report.md",
+      "group_cv": {
+        "accuracy_mean": 0.346983,
+        "macro_f1_mean": 0.233869,
+        "top2_accuracy_mean": 0.518886,
+        "top3_accuracy_mean": 0.656981
+      },
+      "product_use": "Research candidate only. Current 10k group-CV result is weaker than tabular vibration models."
+    }
+  },
+  "safe_product_policy": {
+    "binary_fault_detection": "Can be used as an MVP alert signal with confidence and sensor evidence.",
+    "fault_type_prediction": "Use as top-3 suspected causes. Do not phrase as confirmed diagnosis.",
+    "unknown_faults": "If confidence is low or pattern is outside known labels, route to 'unknown anomaly / inspection required'."
+  }
+}

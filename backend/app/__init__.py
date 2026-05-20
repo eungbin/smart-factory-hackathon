@@ -1,0 +1,1 @@
+"""Gongjangjigi backend package."""
