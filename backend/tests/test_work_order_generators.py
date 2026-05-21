@@ -1,6 +1,6 @@
 import unittest
 
-from app.work_orders.generators import GeminiWorkOrderGenerator, WorkOrderGenerationContext
+from app.work_orders.generators import GeminiWorkOrderGenerator, WorkOrderGenerationContext, WorkOrderGenerationError
 
 
 class WorkOrderGeneratorTests(unittest.TestCase):
@@ -55,6 +55,46 @@ class WorkOrderGeneratorTests(unittest.TestCase):
         self.assertEqual("test-key", calls[0]["api_key"])
         self.assertEqual("application/json", calls[0]["payload"]["generationConfig"]["responseMimeType"])
         self.assertIn("responseJsonSchema", calls[0]["payload"]["generationConfig"])
+
+    def test_gemini_generator_rejects_unknown_step_category(self) -> None:
+        def fake_transport(url: str, api_key: str, payload: dict) -> dict:
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": (
+                                        '{"title":"3호 사출기 정비",'
+                                        '"steps":[{"no":1,"category":"조치","action":"베어링 교체","tool":"렌치","time":"20분","safety":false}],'
+                                        '"parts":[{"name":"베어링","qty":"1개","stock":"재고 1개"}],'
+                                        '"totalTime":"약 20분","techLevel":"정비 2급 이상","caution":"전원 차단 후 작업"}'
+                                    )
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+
+        generator = GeminiWorkOrderGenerator(
+            api_key="test-key",
+            model="gemini-2.5-flash",
+            transport=fake_transport,
+        )
+
+        with self.assertRaises(WorkOrderGenerationError) as raised:
+            generator.generate(
+                WorkOrderGenerationContext(
+                    equipment_name="3호 사출기",
+                    fault_type_text="베어링 불량 (78%)",
+                    root_sensors=["진동 RMS 상승"],
+                    source_summary="설비 운영 매뉴얼 §4.3",
+                    rag_sources=[],
+                )
+            )
+
+        self.assertEqual("provider_response_invalid", raised.exception.code)
 
 
 if __name__ == "__main__":

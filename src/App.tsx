@@ -8,10 +8,12 @@ import { KakaoModal } from './components/KakaoModal';
 import { Dashboard } from './pages/Dashboard';
 import { EquipmentDetail } from './pages/EquipmentDetail';
 import { WorkOrder as WorkOrderPage } from './pages/WorkOrder';
+import { WorkOrderManagement } from './pages/WorkOrderManagement';
+import { Manuals } from './pages/Manuals';
 import { ResultForm } from './pages/ResultForm';
 import { KnowHowReport } from './pages/KnowHowReport';
 
-const PAGE_IDS: PageId[] = ['dashboard', 'detail', 'workorder', 'result', 'report'];
+const PAGE_IDS: PageId[] = ['dashboard', 'detail', 'workorder', 'workorders', 'manuals', 'result', 'report'];
 
 function getInitialPage(): PageId {
   try {
@@ -34,6 +36,8 @@ function App() {
   const [page, setPage] = useState<PageId>(() => getInitialPage());
   const [selectedEquipmentId] = useState<string | null>(() => getInitialEquipmentId());
   const [selectedEq, setSelectedEq] = useState<Equipment | null>(null);
+  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(null);
+  const [selectedManualId, setSelectedManualId] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState(0);
   const [kakaoOrder, setKakaoOrder] = useState<WorkOrder | null>(null);
 
@@ -121,6 +125,14 @@ function App() {
               <WorkOrderPage
                 eq={selectedEq}
                 onSendKakao={(order) => setKakaoOrder(order)}
+                onOpenManual={(sourceRef) => {
+                  setSelectedManualId(sourceRef.documentId);
+                  navigate('manuals');
+                }}
+                onGenerated={(order) => {
+                  setSelectedWorkOrderId(order.id);
+                  navigate('workorders');
+                }}
                 onNavigateResult={() => navigate('result', selectedEq)}
               />
             ) : (
@@ -128,6 +140,23 @@ function App() {
                 작업지시서를 생성할 설비를 먼저 선택해 주세요.
               </div>
             )
+          )}
+          {page === 'workorders' && (
+            <WorkOrderManagement
+              selectedWorkOrderId={selectedWorkOrderId}
+              onSelectWorkOrder={setSelectedWorkOrderId}
+              onCreateNew={() => navigate('workorder', selectedEq ?? undefined)}
+              onOpenManual={(sourceRef) => {
+                setSelectedManualId(sourceRef.documentId);
+                navigate('manuals');
+              }}
+            />
+          )}
+          {page === 'manuals' && (
+            <Manuals
+              selectedDocumentId={selectedManualId}
+              onSelectDocument={setSelectedManualId}
+            />
           )}
           {page === 'result' && (
             selectedEq ? (

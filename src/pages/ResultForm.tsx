@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { Equipment } from '../types';
+import type { Equipment, FaultTypeCode } from '../types';
 import { fetchEquipmentList } from '../api/equipment';
 import { createMaintenanceRecord } from '../api/maintenance';
 import { buttonClass, cn, ui } from '../utils/styles';
@@ -17,7 +17,7 @@ type FormState = {
   seal: boolean;
   note: string;
   nextPlan: string;
-  aiAccuracy: string;
+  actualFaultTypeCode: FaultTypeCode | '';
 };
 
 type Props = {
@@ -25,14 +25,18 @@ type Props = {
   onSubmit?: (form: FormState) => void;
 };
 
-function getActualFaultTypeCode(value: string) {
-  if (value.includes('베어링')) return 'bearing_fault';
-  if (value.includes('벨트')) return 'belt_loose';
-  if (value.includes('회전체')) return 'rotor_unbalance';
-  if (value.includes('축정렬')) return 'shaft_misalignment';
-  if (value.includes('이상 없음')) return 'normal';
-  if (value.includes('다른')) return 'other';
-  return undefined;
+const FAULT_TYPE_OPTIONS: Array<{ value: FaultTypeCode; label: string }> = [
+  { value: 'bearing_fault', label: '베어링 불량' },
+  { value: 'belt_loose', label: '벨트 느슨함' },
+  { value: 'rotor_unbalance', label: '회전체 불평형' },
+  { value: 'shaft_misalignment', label: '축정렬 불량' },
+  { value: 'hydraulic_seal', label: '유압 씰 이상' },
+  { value: 'normal', label: '이상 없음' },
+  { value: 'other', label: '다른 고장 유형' },
+];
+
+function faultTypeLabel(value: FaultTypeCode | '') {
+  return FAULT_TYPE_OPTIONS.find(option => option.value === value)?.label;
 }
 
 export function ResultForm({ eq, onSubmit }: Props) {
@@ -49,7 +53,7 @@ export function ResultForm({ eq, onSubmit }: Props) {
     seal: false,
     note: '',
     nextPlan: '',
-    aiAccuracy: '',
+    actualFaultTypeCode: '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -97,8 +101,8 @@ export function ResultForm({ eq, onSubmit }: Props) {
           seal: form.seal,
         },
         partsReplaced: form.partsReplaced,
-        actualFaultTypeCode: getActualFaultTypeCode(form.aiAccuracy),
-        aiAccuracyNote: form.aiAccuracy || undefined,
+        actualFaultTypeCode: form.actualFaultTypeCode || undefined,
+        aiAccuracyNote: faultTypeLabel(form.actualFaultTypeCode),
         note: form.note,
         nextPlan: form.nextPlan,
       });
@@ -237,17 +241,22 @@ export function ResultForm({ eq, onSubmit }: Props) {
           <div className="mb-3.5 text-[13px] font-semibold text-blue-400">
             🤖 AI 예측 정확도 평가 (학습 품질 향상용)
           </div>
+          <div className="mb-3 rounded border border-blue-500/15 bg-bg-base px-3 py-2 text-xs text-text-secondary">
+            AI 예측: <strong className="text-text-primary">{targetEq.faultType ?? '진단 대기'}</strong>
+            {targetEq.faultConf !== null ? <span className="text-blue-300"> {targetEq.faultConf}%</span> : null}
+          </div>
           <div className="grid grid-cols-2 gap-3.5">
             <div>
               <label className={ui.label}>실제 고장 유형</label>
-              <select className={cn(ui.input, 'cursor-pointer')} value={form.aiAccuracy} onChange={e => setField('aiAccuracy', e.target.value)}>
+              <select
+                className={cn(ui.input, 'cursor-pointer')}
+                value={form.actualFaultTypeCode}
+                onChange={e => setField('actualFaultTypeCode', e.target.value as FaultTypeCode | '')}
+              >
                 <option value="">선택 (선택 사항)</option>
-                <option>베어링 불량 — AI 진단과 일치</option>
-                <option>벨트 느슨함</option>
-                <option>회전체 불평형</option>
-                <option>축정렬 불량</option>
-                <option>이상 없음 — AI 오탐</option>
-                <option>다른 고장 유형</option>
+                {FAULT_TYPE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
             <div>

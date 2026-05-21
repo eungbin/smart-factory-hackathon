@@ -20,6 +20,25 @@ class KnowledgeDocumentOut(BaseModel):
     sourceLabel: str
 
 
+class KnowledgeDocumentSummaryOut(KnowledgeDocumentOut):
+    equipmentModelId: int | None
+    fileName: str | None
+    fileUri: str | None
+    uploadedAt: str
+
+
+class KnowledgeChunkOut(BaseModel):
+    chunkId: int
+    chunkNo: int
+    heading: str | None
+    body: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeDocumentDetailOut(KnowledgeDocumentSummaryOut):
+    chunks: list[KnowledgeChunkOut]
+
+
 class KnowledgeChunkIn(BaseModel):
     chunkNo: int
     heading: str | None = None

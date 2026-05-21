@@ -31,6 +31,15 @@ export type FaultCandidate = {
   probability: number;
 };
 
+export type FaultTypeCode =
+  | 'normal'
+  | 'bearing_fault'
+  | 'belt_loose'
+  | 'rotor_unbalance'
+  | 'shaft_misalignment'
+  | 'hydraulic_seal'
+  | 'other';
+
 export type SensorHistoryPoint = {
   time: string;
   vibration: number;
@@ -113,6 +122,13 @@ export type WorkOrderPart = {
   stock: string;
 };
 
+export type WorkOrderSourceRef = {
+  documentId: number;
+  chunkId: number;
+  sourceLabel: string;
+  heading: string | null;
+};
+
 export type WorkOrder = {
   equipId: number;
   equipName: string;
@@ -122,6 +138,7 @@ export type WorkOrder = {
   faultType: string;
   rootSensors: string[];
   source: string;
+  sourceRefs?: WorkOrderSourceRef[];
   steps: WorkOrderStep[];
   parts: WorkOrderPart[];
   totalTime: string;
@@ -129,4 +146,41 @@ export type WorkOrder = {
   caution: string;
 };
 
-export type PageId = 'dashboard' | 'detail' | 'workorder' | 'result' | 'report';
+export type WorkOrderSummary = {
+  id: number;
+  equipId: number;
+  equipName: string;
+  generatedAt: string;
+  rul: string;
+  risk: number;
+  faultType: string;
+  source: string;
+  status: string;
+  totalTime: string;
+  techLevel: string;
+};
+
+export type KnowledgeChunk = {
+  chunkId: number;
+  chunkNo: number;
+  heading: string | null;
+  body: string;
+  metadata: Record<string, unknown>;
+};
+
+export type KnowledgeDocumentSummary = {
+  documentId: number;
+  title: string;
+  documentType: string;
+  sourceLabel: string;
+  equipmentModelId: number | null;
+  fileName: string | null;
+  fileUri: string | null;
+  uploadedAt: string;
+};
+
+export type KnowledgeDocumentDetail = KnowledgeDocumentSummary & {
+  chunks: KnowledgeChunk[];
+};
+
+export type PageId = 'dashboard' | 'detail' | 'workorder' | 'workorders' | 'manuals' | 'result' | 'report';

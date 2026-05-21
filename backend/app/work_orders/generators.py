@@ -8,6 +8,7 @@ from app.schemas.work_orders import WorkOrderPartOut, WorkOrderStepOut
 
 TEMPLATE_MODEL = "template-v1"
 GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+ALLOWED_STEP_CATEGORIES = ("안전", "진단", "윤활", "부품", "복구", "기록")
 
 
 class WorkOrderGenerationError(Exception):
@@ -196,7 +197,7 @@ def _build_work_order_prompt(context: WorkOrderGenerationContext) -> str:
         f"근거 센서: {root_sensor_text}\n"
         f"출처 요약: {context.source_summary}\n"
         f"RAG 근거:\n{rag_text}\n"
-        "응답은 반드시 제공된 JSON schema를 따르고, 작업 단계는 안전, 진단, 조치, 복구, 기록을 포함하세요."
+        "응답은 반드시 제공된 JSON schema를 따르고, 작업 단계 category는 안전, 진단, 윤활, 부품, 복구, 기록 중 하나만 사용하세요."
     )
 
 
@@ -205,7 +206,7 @@ def _work_order_response_schema() -> dict:
         "type": "object",
         "properties": {
             "no": {"type": "integer"},
-            "category": {"type": "string"},
+            "category": {"type": "string", "enum": list(ALLOWED_STEP_CATEGORIES)},
             "action": {"type": "string"},
             "tool": {"type": "string"},
             "time": {"type": "string"},
@@ -246,6 +247,15 @@ def _parse_gemini_work_order_response(response: dict) -> dict:
     required = ["title", "steps", "parts", "totalTime", "techLevel", "caution"]
     if not all(key in data for key in required):
         raise WorkOrderGenerationError("provider_response_invalid", "Gemini response is missing required fields.")
+    if not isinstance(data["steps"], list):
+        raise WorkOrderGenerationError("provider_response_invalid", "Gemini response steps must be a list.")
+    invalid_categories = [
+        step.get("category") if isinstance(step, dict) else None
+        for step in data["steps"]
+        if not isinstance(step, dict) or step.get("category") not in ALLOWED_STEP_CATEGORIES
+    ]
+    if invalid_categories:
+        raise WorkOrderGenerationError("provider_response_invalid", "Gemini response contains an unknown step category.")
     return data
 
 

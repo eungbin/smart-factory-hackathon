@@ -1,13 +1,15 @@
 import type { PageId } from '../types';
 import { cn } from '../utils/styles';
 
-type IconKey = 'grid' | 'chart' | 'doc' | 'check' | 'report';
+type IconKey = 'grid' | 'chart' | 'doc' | 'book' | 'check' | 'report';
 type NavItem = { id: PageId; label: string; iconSvg: IconKey };
 
 const NAV: NavItem[] = [
   { id: 'dashboard', label: '메인 대시보드', iconSvg: 'grid' },
   { id: 'detail',    label: '설비 상세',     iconSvg: 'chart' },
-  { id: 'workorder', label: '작업지시서',    iconSvg: 'doc' },
+  { id: 'workorder', label: '지시서 생성',   iconSvg: 'doc' },
+  { id: 'workorders', label: '작업지시서 관리', iconSvg: 'doc' },
+  { id: 'manuals',   label: '메뉴얼 관리',   iconSvg: 'book' },
   { id: 'result',    label: '결과 입력',     iconSvg: 'check' },
   { id: 'report',    label: '노하우 리포트', iconSvg: 'report' },
 ];
@@ -33,6 +35,12 @@ const ICONS: Record<IconKey, React.ReactElement> = {
       <line x1="5.5" y1="5.5" x2="10.5" y2="5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
       <line x1="5.5" y1="8" x2="10.5" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
       <line x1="5.5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  book: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M3 2.5h4.2c.8 0 1.3.5 1.3 1.3v9.7c0-.7-.5-1.1-1.3-1.1H3V2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+      <path d="M13 2.5H8.8c-.8 0-1.3.5-1.3 1.3v9.7c0-.7.5-1.1 1.3-1.1H13V2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
     </svg>
   ),
   check: (

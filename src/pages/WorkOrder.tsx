@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Equipment, WorkOrder as WorkOrderT, WorkOrderStep } from '../types';
+import type { Equipment, WorkOrder as WorkOrderT, WorkOrderSourceRef, WorkOrderStep } from '../types';
 import { generateWorkOrder } from '../api/workOrders';
 import { badgeClass, buttonClass, cn, ui } from '../utils/styles';
 
@@ -27,10 +27,12 @@ const STEP_CAT_CLASS: Record<WorkOrderStep['category'], { text: string; border: 
 type Props = {
   eq: Equipment;
   onSendKakao: (order: WorkOrderT) => void;
+  onOpenManual: (sourceRef: WorkOrderSourceRef) => void;
+  onGenerated: (order: WorkOrderT & { id: number }) => void;
   onNavigateResult: () => void;
 };
 
-export function WorkOrder({ eq, onSendKakao, onNavigateResult }: Props) {
+export function WorkOrder({ eq, onSendKakao, onOpenManual, onGenerated, onNavigateResult }: Props) {
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState('');
@@ -51,6 +53,7 @@ export function WorkOrder({ eq, onSendKakao, onNavigateResult }: Props) {
           .then(response => {
             setOrder(response.data);
             setStatus('done');
+            onGenerated(response.data);
           })
           .catch(error => {
             console.error('Failed to generate work order', error);
@@ -219,7 +222,20 @@ export function WorkOrder({ eq, onSendKakao, onNavigateResult }: Props) {
               <div className="mb-2.5 text-[13px] font-semibold text-red-400">⚠ 안전 주의사항</div>
               <p className="text-xs leading-[1.7] text-text-secondary">{order.caution}</p>
               <div className="mt-3 rounded-sm bg-blue-500/8 px-2.5 py-2 text-[11px] text-blue-300">
-                📎 출처: {order.source}
+                {order.sourceRefs?.[0] ? (
+                  <button
+                    type="button"
+                    className="cursor-pointer border-0 bg-transparent p-0 text-left text-[11px] font-semibold text-blue-300 underline-offset-2 hover:underline"
+                    onClick={() => {
+                      const sourceRef = order.sourceRefs?.[0];
+                      if (sourceRef) onOpenManual(sourceRef);
+                    }}
+                  >
+                    📎 출처: {order.source}
+                  </button>
+                ) : (
+                  <>📎 출처: {order.source}</>
+                )}
               </div>
             </div>
           </div>

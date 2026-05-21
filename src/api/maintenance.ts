@@ -1,3 +1,5 @@
+import type { FaultTypeCode } from '../types';
+
 export type MaintenanceRecordPayload = {
   equipmentId: number;
   date: string;
@@ -11,7 +13,7 @@ export type MaintenanceRecordPayload = {
     seal: boolean;
   };
   partsReplaced: string;
-  actualFaultTypeCode?: string;
+  actualFaultTypeCode?: FaultTypeCode;
   aiAccuracyNote?: string;
   note?: string;
   nextPlan?: string;

@@ -5,8 +5,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.models import Equipment, PredictionRun, WorkOrder, WorkOrderPart, WorkOrderSource, WorkOrderStep
-from app.schemas.work_orders import WorkOrderOut
+from app.db.models import (
+    Equipment,
+    EquipmentModel,
+    KnowledgeChunk,
+    PredictionRootCause,
+    PredictionRun,
+    WorkOrder,
+    WorkOrderPart,
+    WorkOrderSource,
+    WorkOrderStep,
+)
+from app.schemas.work_orders import WorkOrderOut, WorkOrderPartOut, WorkOrderStepOut, WorkOrderSummaryOut
 from app.services.equipment import get_equipment
 from app.services.knowledge import search_chunks
 from app.services.predictions import get_latest_prediction, get_prediction_out
@@ -113,6 +123,15 @@ def generate_work_order(
         faultType=order.fault_type_text,
         rootSensors=root_sensors,
         source=order.source_summary,
+        sourceRefs=[
+            {
+                "documentId": source.documentId,
+                "chunkId": source.chunkId,
+                "sourceLabel": source.sourceLabel,
+                "heading": source.heading,
+            }
+            for source in rag_sources
+        ],
         status=order.status,
         steps=generation.steps,
         parts=generation.parts,
@@ -120,6 +139,18 @@ def generate_work_order(
         techLevel=order.tech_level,
         caution=order.caution,
     )
+
+
+def list_work_orders(db: Session, limit: int = 50) -> list[WorkOrderSummaryOut]:
+    stmt = select(WorkOrder).order_by(WorkOrder.generated_at.desc(), WorkOrder.id.desc()).limit(max(1, min(limit, 100)))
+    return [_work_order_summary_out(db, order) for order in db.execute(stmt).scalars().all()]
+
+
+def get_work_order(db: Session, work_order_id: int) -> WorkOrderOut | None:
+    order = db.get(WorkOrder, work_order_id)
+    if order is None:
+        return None
+    return _work_order_out(db, order)
 
 
 def _resolve_prediction(db: Session, equipment_id: int, prediction_run_id: int | None):
@@ -202,6 +233,102 @@ def _root_sensor_texts(prediction) -> list[str]:
     if prediction is None:
         return []
     return [sensor.displayText for sensor in prediction.rootSensors]
+
+
+def _work_order_summary_out(db: Session, order: WorkOrder) -> WorkOrderSummaryOut:
+    return WorkOrderSummaryOut(
+        id=order.id,
+        equipId=order.equipment_id,
+        equipName=_equipment_label(db, order.equipment_id),
+        generatedAt=order.generated_at.strftime("%Y-%m-%d %H:%M"),
+        rul=order.rul_text,
+        risk=int(round(float(order.risk_pct))),
+        faultType=order.fault_type_text,
+        source=order.source_summary,
+        status=order.status,
+        totalTime=f"약 {order.total_minutes}분",
+        techLevel=order.tech_level,
+    )
+
+
+def _work_order_out(db: Session, order: WorkOrder) -> WorkOrderOut:
+    steps = db.execute(
+        select(WorkOrderStep)
+        .where(WorkOrderStep.work_order_id == order.id)
+        .order_by(WorkOrderStep.step_no, WorkOrderStep.id)
+    ).scalars().all()
+    parts = db.execute(
+        select(WorkOrderPart)
+        .where(WorkOrderPart.work_order_id == order.id)
+        .order_by(WorkOrderPart.id)
+    ).scalars().all()
+
+    return WorkOrderOut(
+        **_work_order_summary_out(db, order).model_dump(),
+        rootSensors=_root_sensor_texts_from_order(db, order),
+        sourceRefs=_source_refs_from_order(db, order.id),
+        steps=[
+            WorkOrderStepOut(
+                no=step.step_no,
+                category=step.category,
+                action=step.action,
+                tool=step.tool,
+                time=f"{step.estimated_minutes}분",
+                safety=step.safety_required,
+            )
+            for step in steps
+        ],
+        parts=[
+            WorkOrderPartOut(
+                name=part.part_name,
+                qty=part.qty_text,
+                stock=part.stock_text,
+            )
+            for part in parts
+        ],
+        caution=order.caution,
+    )
+
+
+def _equipment_label(db: Session, equipment_id: int) -> str:
+    row = db.execute(
+        select(Equipment, EquipmentModel)
+        .join(EquipmentModel, Equipment.model_id == EquipmentModel.id)
+        .where(Equipment.id == equipment_id)
+    ).first()
+    if row is None:
+        return f"설비 #{equipment_id}"
+    equipment, model = row
+    return f"{equipment.name}({model.model_name}, {equipment.installed_year})"
+
+
+def _root_sensor_texts_from_order(db: Session, order: WorkOrder) -> list[str]:
+    if order.prediction_run_id is None:
+        return []
+    rows = db.execute(
+        select(PredictionRootCause.display_text)
+        .where(PredictionRootCause.prediction_run_id == order.prediction_run_id)
+        .order_by(PredictionRootCause.rank_no, PredictionRootCause.id)
+    ).scalars().all()
+    return list(rows)
+
+
+def _source_refs_from_order(db: Session, work_order_id: int) -> list[dict]:
+    rows = db.execute(
+        select(WorkOrderSource, KnowledgeChunk)
+        .join(KnowledgeChunk, KnowledgeChunk.id == WorkOrderSource.knowledge_chunk_id)
+        .where(WorkOrderSource.work_order_id == work_order_id)
+        .order_by(WorkOrderSource.id)
+    ).all()
+    return [
+        {
+            "documentId": chunk.document_id,
+            "chunkId": source.knowledge_chunk_id,
+            "sourceLabel": source.source_label,
+            "heading": chunk.heading,
+        }
+        for source, chunk in rows
+    ]
 
 
 def _minutes_from_text(value: str) -> int:

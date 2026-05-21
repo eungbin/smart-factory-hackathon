@@ -5,9 +5,12 @@ from app.db.models import KnowledgeChunk, KnowledgeDocument
 from app.rag.embeddings import EMBEDDING_DIMENSIONS, embed_text
 from app.schemas.knowledge import (
     KnowledgeChunkIn,
+    KnowledgeChunkOut,
     KnowledgeChunksCreatedOut,
+    KnowledgeDocumentDetailOut,
     KnowledgeDocumentIn,
     KnowledgeDocumentOut,
+    KnowledgeDocumentSummaryOut,
     KnowledgeSearchResultOut,
 )
 
@@ -56,6 +59,43 @@ def create_chunks(
 
     db.commit()
     return KnowledgeChunksCreatedOut(inserted=len(chunks))
+
+
+def list_documents(
+    db: Session,
+    document_type: str | None = None,
+) -> list[KnowledgeDocumentSummaryOut]:
+    stmt = select(KnowledgeDocument).order_by(KnowledgeDocument.uploaded_at.desc(), KnowledgeDocument.id.desc())
+    if document_type is not None:
+        stmt = stmt.where(KnowledgeDocument.document_type == document_type)
+
+    return [_document_summary(document) for document in db.execute(stmt).scalars().all()]
+
+
+def get_document(db: Session, document_id: int) -> KnowledgeDocumentDetailOut | None:
+    document = db.get(KnowledgeDocument, document_id)
+    if document is None:
+        return None
+
+    chunks = db.execute(
+        select(KnowledgeChunk)
+        .where(KnowledgeChunk.document_id == document_id)
+        .order_by(KnowledgeChunk.chunk_no, KnowledgeChunk.id)
+    ).scalars().all()
+
+    return KnowledgeDocumentDetailOut(
+        **_document_summary(document).model_dump(),
+        chunks=[
+            KnowledgeChunkOut(
+                chunkId=chunk.id,
+                chunkNo=chunk.chunk_no,
+                heading=chunk.heading,
+                body=chunk.body,
+                metadata=chunk.metadata_,
+            )
+            for chunk in chunks
+        ],
+    )
 
 
 def search_chunks(
@@ -108,3 +148,16 @@ def _score(distance_value: float | None) -> float:
     if distance_value is None:
         return 0.0
     return round(max(0.0, 1.0 - float(distance_value)), 4)
+
+
+def _document_summary(document: KnowledgeDocument) -> KnowledgeDocumentSummaryOut:
+    return KnowledgeDocumentSummaryOut(
+        documentId=document.id,
+        title=document.title,
+        documentType=document.document_type,
+        sourceLabel=document.source_label,
+        equipmentModelId=document.equipment_model_id,
+        fileName=document.file_name,
+        fileUri=document.file_uri,
+        uploadedAt=document.uploaded_at.strftime("%Y-%m-%d %H:%M") if document.uploaded_at else "",
+    )

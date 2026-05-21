@@ -22,6 +22,27 @@ class WorkOrderPartOut(BaseModel):
     stock: str
 
 
+class WorkOrderSourceRefOut(BaseModel):
+    documentId: int
+    chunkId: int
+    sourceLabel: str
+    heading: str | None
+
+
+class WorkOrderSummaryOut(BaseModel):
+    id: int
+    equipId: int
+    equipName: str
+    generatedAt: str
+    rul: str
+    risk: int
+    faultType: str
+    source: str
+    status: str
+    totalTime: str
+    techLevel: str
+
+
 class WorkOrderOut(BaseModel):
     id: int
     equipId: int
@@ -32,6 +53,7 @@ class WorkOrderOut(BaseModel):
     faultType: str
     rootSensors: list[str]
     source: str
+    sourceRefs: list[WorkOrderSourceRefOut]
     status: str
     steps: list[WorkOrderStepOut]
     parts: list[WorkOrderPartOut]

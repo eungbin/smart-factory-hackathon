@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 from app.api.predictions import run_prediction
-from app.api.work_orders import create_work_order
+from app.api.work_orders import create_work_order, read_work_order, read_work_orders
 from app.api.knowledge import create_knowledge_chunks, create_knowledge_document
 from app.core.config import get_settings
 from app.db.seed import seed_demo_data
@@ -43,6 +43,7 @@ class WorkOrderApiTests(unittest.TestCase):
                 "faultType",
                 "rootSensors",
                 "source",
+                "sourceRefs",
                 "status",
                 "steps",
                 "parts",
@@ -98,6 +99,57 @@ class WorkOrderApiTests(unittest.TestCase):
         self.assertEqual(order["source"], saved_order["source_summary"])
         self.assertEqual(len(order["steps"]), saved_step_count)
         self.assertEqual(len(order["parts"]), saved_part_count)
+
+    def test_read_work_orders_returns_generated_orders_newest_first(self) -> None:
+        seed_demo_data()
+
+        with SessionLocal() as db:
+            first = create_work_order(WorkOrderGenerateIn(equipmentId=3), db=db)["data"]
+            second = create_work_order(WorkOrderGenerateIn(equipmentId=4), db=db)["data"]
+            response = read_work_orders(db=db)
+
+        orders = response["data"]
+        self.assertGreaterEqual(len(orders), 2)
+        self.assertEqual(second["id"], orders[0]["id"])
+        self.assertEqual(first["id"], orders[1]["id"])
+        self.assertEqual(
+            {
+                "id",
+                "equipId",
+                "equipName",
+                "generatedAt",
+                "rul",
+                "risk",
+                "faultType",
+                "source",
+                "status",
+                "totalTime",
+                "techLevel",
+            },
+            set(orders[0].keys()),
+        )
+        self.assertEqual({"limit", "nextCursor"}, set(response["page"].keys()))
+
+    def test_read_work_order_returns_saved_detail(self) -> None:
+        seed_demo_data()
+
+        with SessionLocal() as db:
+            created = create_work_order(WorkOrderGenerateIn(equipmentId=3), db=db)["data"]
+            response = read_work_order(created["id"], db=db)
+
+        detail = response["data"]
+        self.assertEqual(created["id"], detail["id"])
+        self.assertEqual(created["equipId"], detail["equipId"])
+        self.assertEqual(created["source"], detail["source"])
+        self.assertGreaterEqual(len(detail["steps"]), 1)
+        self.assertGreaterEqual(len(detail["parts"]), 1)
+
+    def test_read_work_order_returns_404_for_missing_order(self) -> None:
+        with SessionLocal() as db:
+            with self.assertRaises(HTTPException) as raised:
+                read_work_order(999999, db=db)
+
+        self.assertEqual(404, raised.exception.status_code)
 
     def test_create_work_order_persists_generator_result_metadata(self) -> None:
         seed_demo_data()
@@ -197,6 +249,11 @@ class WorkOrderApiTests(unittest.TestCase):
             ).mappings().one()
 
         self.assertEqual("설비 운영 매뉴얼 §4.3 - 유압 펌프 베어링 정비 절차", order["source"])
+        self.assertEqual(1, len(order["sourceRefs"]))
+        self.assertEqual(document["documentId"], order["sourceRefs"][0]["documentId"])
+        self.assertEqual(saved_source["knowledge_chunk_id"], order["sourceRefs"][0]["chunkId"])
+        self.assertEqual("설비 운영 매뉴얼 §4.3", order["sourceRefs"][0]["sourceLabel"])
+        self.assertEqual("유압 펌프 베어링 정비 절차", order["sourceRefs"][0]["heading"])
         self.assertEqual("설비 운영 매뉴얼 §4.3", saved_source["source_label"])
         self.assertGreater(saved_source["knowledge_chunk_id"], 0)
         self.assertGreater(saved_source["relevance_score"], 0)

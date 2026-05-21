@@ -11,7 +11,9 @@ type Props = {
 const TITLES: Record<PageId, { title: string; sub: string }> = {
   dashboard: { title: '메인 대시보드', sub: '실시간 설비 현황 모니터링' },
   detail:    { title: '설비 상세',     sub: 'RUL · 위험도 · 센서 트렌드' },
-  workorder: { title: '작업지시서',    sub: 'AI 생성 정비 지시서 (LLM + RAG)' },
+  workorder: { title: '작업지시서 생성', sub: 'AI 생성 정비 지시서 (LLM + RAG)' },
+  workorders: { title: '작업지시서 관리', sub: '생성된 작업지시서 목록 · 상세 조회' },
+  manuals:   { title: '메뉴얼 관리',   sub: 'RAG 출처 메뉴얼 조회' },
   result:    { title: '결과 입력',     sub: '정비 완료 결과 기록 · 학습 큐 적재' },
   report:    { title: '노하우 리포트', sub: '월간 정비 분석 · 데이터 자산화' },
 };

@@ -1,4 +1,4 @@
-import type { WorkOrder } from '../types';
+import type { WorkOrder, WorkOrderSummary } from '../types';
 
 export type GeneratedWorkOrder = WorkOrder & {
   id: number;
@@ -6,6 +6,18 @@ export type GeneratedWorkOrder = WorkOrder & {
 };
 
 export type GenerateWorkOrderResponse = {
+  data: GeneratedWorkOrder;
+};
+
+export type WorkOrdersResponse = {
+  data: WorkOrderSummary[];
+  page: {
+    limit: number;
+    nextCursor: string | null;
+  };
+};
+
+export type WorkOrderResponse = {
   data: GeneratedWorkOrder;
 };
 
@@ -27,4 +39,24 @@ export async function generateWorkOrder(equipmentId: number): Promise<GenerateWo
   }
 
   return response.json() as Promise<GenerateWorkOrderResponse>;
+}
+
+export async function fetchWorkOrders(signal?: AbortSignal): Promise<WorkOrdersResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/work-orders`, { signal });
+
+  if (!response.ok) {
+    throw new Error(`Work orders API request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<WorkOrdersResponse>;
+}
+
+export async function fetchWorkOrder(workOrderId: number, signal?: AbortSignal): Promise<WorkOrderResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/work-orders/${workOrderId}`, { signal });
+
+  if (!response.ok) {
+    throw new Error(`Work order detail API request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<WorkOrderResponse>;
 }
