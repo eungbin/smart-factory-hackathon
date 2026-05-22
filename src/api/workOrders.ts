@@ -21,6 +21,10 @@ export type WorkOrderResponse = {
   data: GeneratedWorkOrder;
 };
 
+export type SendKakaoWorkOrderResponse = {
+  data: GeneratedWorkOrder;
+};
+
 const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
 
 function getApiBaseUrl() {
@@ -59,4 +63,16 @@ export async function fetchWorkOrder(workOrderId: number, signal?: AbortSignal):
   }
 
   return response.json() as Promise<WorkOrderResponse>;
+}
+
+export async function sendKakaoWorkOrder(workOrderId: number): Promise<SendKakaoWorkOrderResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/work-orders/${workOrderId}/send-kakao`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Work order Kakao send request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<SendKakaoWorkOrderResponse>;
 }

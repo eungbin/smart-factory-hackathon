@@ -2,7 +2,13 @@ import { useState } from 'react';
 import type { WorkOrder } from '../types';
 import { buttonClass, cn, ui } from '../utils/styles';
 
-type Props = { order: WorkOrder | null; onClose: () => void };
+type KakaoWorkOrder = WorkOrder & { id?: number };
+
+type Props = {
+  order: KakaoWorkOrder | null;
+  onClose: () => void;
+  onSend?: (order: KakaoWorkOrder) => Promise<KakaoWorkOrder | void>;
+};
 
 function formatKstTime(date: Date) {
   return new Intl.DateTimeFormat('ko-KR', {
@@ -13,31 +19,51 @@ function formatKstTime(date: Date) {
   }).format(date);
 }
 
-export function KakaoModal({ order, onClose }: Props) {
+export function KakaoModal({ order, onClose, onSend }: Props) {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
-  function handleSend() {
+  async function handleSend() {
+    if (!order) return;
+
     setSending(true);
-    setTimeout(() => {
+    setSendError(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      await onSend?.(order);
       setSending(false);
       setSent(true);
-    }, 1200);
+    } catch (error) {
+      console.error('Failed to send Kakao demo notification', error);
+      setSending(false);
+      setSendError('전송 상태 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
   }
+
+  const overviewSteps = order?.steps
+    .filter(step => step.category !== '기록')
+    .slice(0, 2)
+    .map(step => `• ${step.action}`);
+  const fallbackOverview = [
+    '• 베어링 부위 육안 점검 및 그리스 교체',
+    '• 전원 LOTO 후 작업 (안전 필수)',
+  ];
+  const sourceLine = order?.source ? `📎 ${order.source}` : '📎 매뉴얼 §4.3 기반';
 
   const msgLines = [
     '[공장지기] 정비 작업지시서',
+    order?.id ? `WO-${String(order.id).padStart(5, '0')}` : '',
     '',
     `📍 ${order?.equipName ?? '3호 사출기 (LS240-B)'}`,
     `🔴 고장 위험도: ${order?.risk ?? 78}% | RUL: ${order?.rul ?? '72h (±24h)'}`,
     `🔧 AI 진단: ${order?.faultType ?? '베어링 불량 78%'}`,
     '',
     '▶ 작업 개요',
-    '• 베어링 부위 육안 점검 및 그리스 교체',
-    '• 전원 LOTO 후 작업 (안전 필수)',
-    '• 소요 시간: 약 65분',
+    ...(overviewSteps?.length ? overviewSteps : fallbackOverview),
+    `• 소요 시간: ${order?.totalTime ?? '약 65분'}`,
     '',
-    '📎 매뉴얼 §4.3 기반',
+    sourceLine,
     '✅ 완료 후 결과 입력 必',
     '',
     '공장지기 대시보드 → 결과 입력',
@@ -95,9 +121,15 @@ export function KakaoModal({ order, onClose }: Props) {
             <span className="ml-2 text-text-muted">010-xxxx-xxxx</span>
           </div>
 
+          {sendError && (
+            <div className="mb-3.5 rounded border border-red-500/25 bg-red-500/8 px-3.5 py-2.5 text-xs text-red-300">
+              {sendError}
+            </div>
+          )}
+
           {!sent ? (
             <button
-              className={cn(ui.button.base, 'w-full bg-[#FEE500] p-3 text-sm font-extrabold text-[#3C1E1E] hover:bg-[#F6DA00]')}
+              className={cn(ui.button.base, 'w-full bg-[#FEE500] p-3 text-sm font-extrabold !text-[#3C1E1E] hover:bg-[#F6DA00]')}
               onClick={handleSend}
               disabled={sending}
             >

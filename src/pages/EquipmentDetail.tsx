@@ -643,14 +643,14 @@ export function EquipmentDetail({ eq, onNavigate, onChangeEquipment }: Props) {
             </div>
           </div>
           <div className={ui.card}>
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: 'var(--text-secondary)' }}>AI 모델 성능</div>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: 'var(--text-secondary)' }}>RUL 모델 검증</div>
             {([
-              { label: 'RMSE',           value: '14.2 cycles', good: true },
-              { label: 'PHM Score',      value: '0.83',         good: true },
-              { label: '고장 미탐률',    value: '7.4%',         good: true },
-              { label: '불필요 정비율',  value: '11.2%',        good: true },
-              { label: '학습 데이터',    value: 'C-MAPSS FD001' },
-              { label: '도메인 보강',    value: 'AI Hub #238' },
+              { label: '대표 RMSE',      value: '12.738 cycles', good: true },
+              { label: 'Seed 42 RMSE',   value: '12.614 cycles', good: true },
+              { label: 'PHM Score',      value: '2256.4',        good: true },
+              { label: '고위험 판정',    value: '300 / 707' },
+              { label: '모델',           value: 'GRU+TCN+PatchTST' },
+              { label: '검증 데이터',    value: 'C-MAPSS FD001~FD004' },
             ] as { label: string; value: string; good?: boolean }[]).map(m => (
               <div key={m.label} style={{
                 display: 'flex', justifyContent: 'space-between',

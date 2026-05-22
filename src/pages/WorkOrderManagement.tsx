@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { fetchWorkOrder, fetchWorkOrders, type GeneratedWorkOrder } from '../api/workOrders';
-import type { WorkOrderSourceRef, WorkOrderSummary } from '../types';
+import type { WorkOrder, WorkOrderSourceRef, WorkOrderSummary } from '../types';
 import { badgeClass, buttonClass, cn, ui } from '../utils/styles';
 
 type Props = {
   selectedWorkOrderId: number | null;
   onSelectWorkOrder: (workOrderId: number) => void;
   onCreateNew: () => void;
+  onSendKakao: (order: WorkOrder & { id?: number }) => void;
+  sentWorkOrder: GeneratedWorkOrder | null;
   onOpenManual: (sourceRef: WorkOrderSourceRef) => void;
 };
 
@@ -18,7 +20,14 @@ function statusLabel(status: string) {
   return status;
 }
 
-export function WorkOrderManagement({ selectedWorkOrderId, onSelectWorkOrder, onCreateNew, onOpenManual }: Props) {
+export function WorkOrderManagement({
+  selectedWorkOrderId,
+  onSelectWorkOrder,
+  onCreateNew,
+  onSendKakao,
+  sentWorkOrder,
+  onOpenManual,
+}: Props) {
   const [orders, setOrders] = useState<WorkOrderSummary[]>([]);
   const [detail, setDetail] = useState<GeneratedWorkOrder | null>(null);
   const [loadingList, setLoadingList] = useState(true);
@@ -63,6 +72,17 @@ export function WorkOrderManagement({ selectedWorkOrderId, onSelectWorkOrder, on
 
     return () => controller.abort();
   }, [selectedWorkOrderId]);
+
+  useEffect(() => {
+    if (!sentWorkOrder) return;
+
+    setOrders(prev => prev.map(order => (
+      order.id === sentWorkOrder.id ? { ...order, status: sentWorkOrder.status } : order
+    )));
+    setDetail(prev => (
+      prev?.id === sentWorkOrder.id ? sentWorkOrder : prev
+    ));
+  }, [sentWorkOrder]);
 
   if (loadingList) {
     return <div className={cn(ui.card, 'px-5 py-4 text-sm text-text-secondary')}>작업지시서 목록을 불러오는 중입니다.</div>;
@@ -133,7 +153,16 @@ export function WorkOrderManagement({ selectedWorkOrderId, onSelectWorkOrder, on
                 <div className="text-lg font-bold text-text-primary">WO-{String(detail.id).padStart(5, '0')}</div>
                 <div className="mt-1 text-xs text-text-muted">{detail.equipName} · {detail.generatedAt}</div>
               </div>
-              <span className={badgeClass('info')}>{statusLabel(detail.status)}</span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className={badgeClass(detail.status === 'sent' ? 'normal' : 'info')}>{statusLabel(detail.status)}</span>
+                <button
+                  type="button"
+                  className={cn(ui.button.base, ui.button.sm, 'bg-[#FEE500] !text-[#3C1E1E] hover:bg-[#F6DA00]')}
+                  onClick={() => onSendKakao(detail)}
+                >
+                  {detail.status === 'sent' ? '카카오톡 다시 보기' : '승인 후 카카오톡 전송'}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-4 gap-2.5 text-xs">
@@ -214,6 +243,22 @@ export function WorkOrderManagement({ selectedWorkOrderId, onSelectWorkOrder, on
                   {detail.caution}
                 </div>
               </div>
+            </div>
+
+            <div className={cn(ui.cardSm, 'flex flex-wrap items-center justify-between gap-3 border-green-400/20 bg-green-500/6')}>
+              <div>
+                <div className="text-[13px] font-semibold text-green-400">작업자 알림 전송 대기</div>
+                <div className="mt-0.5 text-[11px] text-text-muted">
+                  이민준 정비 담당자에게 승인된 작업지시서를 전달합니다.
+                </div>
+              </div>
+              <button
+                type="button"
+                className={cn(ui.button.base, 'bg-[#25d366] text-white hover:bg-[#21bf5b]')}
+                onClick={() => onSendKakao(detail)}
+              >
+                카카오톡으로 전송
+              </button>
             </div>
           </div>
         )}

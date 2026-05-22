@@ -153,6 +153,18 @@ def get_work_order(db: Session, work_order_id: int) -> WorkOrderOut | None:
     return _work_order_out(db, order)
 
 
+def send_work_order_kakao_demo(db: Session, work_order_id: int) -> WorkOrderOut | None:
+    order = db.get(WorkOrder, work_order_id)
+    if order is None:
+        return None
+
+    order.status = "sent"
+    order.updated_at = datetime.now(KST)
+    db.commit()
+    db.refresh(order)
+    return _work_order_out(db, order)
+
+
 def _resolve_prediction(db: Session, equipment_id: int, prediction_run_id: int | None):
     if prediction_run_id is None:
         return get_latest_prediction(db, equipment_id)

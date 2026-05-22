@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Equipment, PageId, WorkOrder } from './types';
 import { fetchDashboard, type DashboardSummary } from './api/dashboard';
 import { subscribeRealtime } from './api/realtime';
+import { sendKakaoWorkOrder, type GeneratedWorkOrder } from './api/workOrders';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { KakaoModal } from './components/KakaoModal';
@@ -14,6 +15,8 @@ import { ResultForm } from './pages/ResultForm';
 import { KnowHowReport } from './pages/KnowHowReport';
 
 const PAGE_IDS: PageId[] = ['dashboard', 'detail', 'workorder', 'workorders', 'manuals', 'result', 'report'];
+
+type KakaoOrder = WorkOrder & { id?: number; status?: string };
 
 function getInitialPage(): PageId {
   try {
@@ -39,7 +42,8 @@ function App() {
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(null);
   const [selectedManualId, setSelectedManualId] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState(0);
-  const [kakaoOrder, setKakaoOrder] = useState<WorkOrder | null>(null);
+  const [kakaoOrder, setKakaoOrder] = useState<KakaoOrder | null>(null);
+  const [sentWorkOrder, setSentWorkOrder] = useState<GeneratedWorkOrder | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -98,6 +102,15 @@ function App() {
     setSelectedEq(eq);
   }, []);
 
+  const handleSendKakao = useCallback(async (order: KakaoOrder) => {
+    if (!order.id) return;
+
+    const response = await sendKakaoWorkOrder(order.id);
+    setSentWorkOrder(response.data);
+    setKakaoOrder(response.data);
+    return response.data;
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
@@ -146,6 +159,8 @@ function App() {
               selectedWorkOrderId={selectedWorkOrderId}
               onSelectWorkOrder={setSelectedWorkOrderId}
               onCreateNew={() => navigate('workorder', selectedEq ?? undefined)}
+              onSendKakao={(order) => setKakaoOrder(order)}
+              sentWorkOrder={sentWorkOrder}
               onOpenManual={(sourceRef) => {
                 setSelectedManualId(sourceRef.documentId);
                 navigate('manuals');
@@ -172,7 +187,7 @@ function App() {
       </div>
 
       {kakaoOrder && (
-        <KakaoModal order={kakaoOrder} onClose={() => setKakaoOrder(null)} />
+        <KakaoModal order={kakaoOrder} onClose={() => setKakaoOrder(null)} onSend={handleSendKakao} />
       )}
     </div>
   );
