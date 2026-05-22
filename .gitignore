@@ -13,8 +13,42 @@ dist-ssr
 *.local
 
 # Env files
+.env
+.env.local
 .env.*
 !.env.example
+**/.env
+**/.env.local
+**/.env.*
+!**/.env.example
+
+# Secrets and credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*secret*
+*credential*
+*token*
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML and dataset artifacts
+backend/model/**/data/**/*.csv
+backend/model/**/data/**/*.zip
+backend/model/**/data/**/downloads/
+backend/model/**/data/models/**/*.joblib
+backend/model/**/data/models/**/*.pt
+
+# Competition-private docs
+docs/*MVP_기획서*.pdf
+docs/*MVP_기획서*.pptx
+docs/*본선_QA*.pdf
+docs/*본선_QA*.pptx
 
 # Editor directories and files
 .vscode/*
